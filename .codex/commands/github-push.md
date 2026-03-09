@@ -21,6 +21,18 @@ last_updated: 2026-01-08
 
 ## 🚀 执行流程
 
+### 0. 预检查远程
+
+在执行提交和推送前，先确认 `origin` 已配置，避免“本地已提交但推送阶段才失败”。
+
+```bash
+if ! git remote get-url origin >/dev/null 2>&1; then
+  echo "错误: 未配置 Git 远程 origin。"
+  echo "请先执行: git remote add origin <repo-url>"
+  exit 1
+fi
+```
+
 ### 1. 添加变更
 
 将所有本地修改（新增、修改、删除）添加到暂存区。
@@ -80,6 +92,7 @@ echo "remote $(git rev-parse origin/$CURRENT_BRANCH)"
 ## 🔍 常见问题
 
 - **无变更**: 如果没有文件修改，`git commit` 会提示 nothing to commit，这是正常现象。
+- **未配置远程**: 若提示 `origin does not appear to be a git repository`，先执行 `git remote add origin <repo-url>`。
 - **推送被拒**: 如果远程有新提交，请先执行 `git pull`。
 - **编辑器仍显示“挂起/变更计数”**: 先按第 4 步校验 Git 真实状态；若已对齐，刷新编辑器 Git 视图即可。
 
