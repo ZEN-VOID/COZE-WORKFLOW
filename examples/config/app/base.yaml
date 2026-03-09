@@ -1,0 +1,36 @@
+runtime:
+  env: local
+  profile: local
+  workspace_path: ""
+http:
+  host: 0.0.0.0
+  port: 5000
+  reload: false
+  workers: 1
+workflow:
+  timeout_seconds: 900
+  default_input_text: "你好"
+logging:
+  level: INFO
+  json_format: true
+  log_file: ""
+  max_bytes: 104857600
+  backup_count: 5
+  console_output: true
+database:
+  url: ""
+  pool_size: 20
+  max_overflow: 20
+  pool_timeout: 30
+  pool_recycle: 1800
+checkpoint:
+  backend: postgres
+  fallback_enabled: true
+  schema: memory
+  connection_timeout: 15
+  max_retries: 2
+storage:
+  s3_bucket: ""
+  s3_region: ""
+  s3_endpoint_url: ""
+  s3_prefix: workflows/

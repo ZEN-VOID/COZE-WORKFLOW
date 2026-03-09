@@ -1,0 +1,15 @@
+{
+  "config": {
+    "model": "doubao-seed-1-8-251228",
+    "temperature": 0.7,
+    "top_p": 0.7,
+    "max_completion_tokens": 2000,
+    "thinking": "disabled",
+    "timeout_seconds": 60,
+    "retry_count": 2,
+    "fallback_model": ""
+  },
+  "tools": [],
+  "sp": "You are a helpful assistant with expertise in data processing and task execution.",
+  "up": "请处理以下输入内容，并返回清晰的结果：\n\n{{ input_text }}"
+}

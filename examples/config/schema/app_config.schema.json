@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AppConfig",
+  "type": "object",
+  "required": ["runtime", "http", "workflow", "logging", "database", "checkpoint", "storage"],
+  "properties": {
+    "runtime": {
+      "type": "object",
+      "required": ["env", "profile"],
+      "properties": {
+        "env": { "type": "string" },
+        "profile": { "type": "string" },
+        "workspace_path": { "type": "string" }
+      }
+    },
+    "http": {
+      "type": "object",
+      "required": ["host", "port", "reload", "workers"],
+      "properties": {
+        "host": { "type": "string" },
+        "port": { "type": "integer" },
+        "reload": { "type": "boolean" },
+        "workers": { "type": "integer" }
+      }
+    },
+    "workflow": {
+      "type": "object",
+      "required": ["timeout_seconds", "default_input_text"],
+      "properties": {
+        "timeout_seconds": { "type": "integer" },
+        "default_input_text": { "type": "string" }
+      }
+    },
+    "logging": {
+      "type": "object",
+      "required": ["level", "json_format", "max_bytes", "backup_count", "console_output"],
+      "properties": {
+        "level": { "type": "string" },
+        "json_format": { "type": "boolean" },
+        "log_file": { "type": "string" },
+        "max_bytes": { "type": "integer" },
+        "backup_count": { "type": "integer" },
+        "console_output": { "type": "boolean" }
+      }
+    },
+    "database": {
+      "type": "object",
+      "required": ["url", "pool_size", "max_overflow", "pool_timeout", "pool_recycle"],
+      "properties": {
+        "url": { "type": "string" },
+        "pool_size": { "type": "integer" },
+        "max_overflow": { "type": "integer" },
+        "pool_timeout": { "type": "integer" },
+        "pool_recycle": { "type": "integer" }
+      }
+    },
+    "checkpoint": {
+      "type": "object",
+      "required": ["backend", "fallback_enabled", "schema", "connection_timeout", "max_retries"],
+      "properties": {
+        "backend": { "type": "string" },
+        "fallback_enabled": { "type": "boolean" },
+        "schema": { "type": "string" },
+        "connection_timeout": { "type": "integer" },
+        "max_retries": { "type": "integer" }
+      }
+    },
+    "storage": {
+      "type": "object",
+      "required": ["s3_bucket", "s3_region", "s3_endpoint_url", "s3_prefix"],
+      "properties": {
+        "s3_bucket": { "type": "string" },
+        "s3_region": { "type": "string" },
+        "s3_endpoint_url": { "type": "string" },
+        "s3_prefix": { "type": "string" }
+      }
+    }
+  }
+}
