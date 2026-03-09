@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash",
+      "Edit",
+      "Write",
+      "Read",
+      "Glob",
+      "Grep",
+      "WebFetch",
+      "WebSearch",
+      "Task",
+      "TodoWrite",
+      "NotebookEdit",
+      "mcp__*",
+      "Skill",
+      "mcp__github-mcp__create_or_update_file"
+    ]
+  }
+}

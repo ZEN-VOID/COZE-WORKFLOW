@@ -1,0 +1,26 @@
+# Codex CLI Team Config (repo-local defaults)
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+
+[notice]
+suppress_unstable_features_warning = true
+
+model_provider = "zj"
+model = "gpt-5.4"
+model_reasoning_effort = "high"
+disable_response_storage = true
+service_tier = "fast"
+
+[model_providers.zj]
+name = "zj"
+base_url = "https://cch.zdrawai.com/v1"
+wire_api = "responses"
+requires_openai_auth = true
+api_key = "sk-a0vyo6i83j1z5esmgfh2kuq4"
+request_max_retries = 4
+stream_max_retries = 10
+web_search = "live"
+
+[features]
+collaboration_modes = true
+fast_mode = true
