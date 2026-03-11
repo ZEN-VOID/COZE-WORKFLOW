@@ -1,15 +1,19 @@
 ## 项目概述
 - **名称**: COZE-WORKFLOW
-- **目标**: 维护一个面向扣子工作流开发的项目仓库，沉淀可复用的工作流目录结构、配置体系、节点模板、运行脚本与开发规范
-- **当前状态**: 根目录负责定义仓库级约束与协作规则；`examples/` 提供一套可运行的工作流模板与配置样例
+- **目标**: 维护一个面向扣子(Coze)平台工作流开发的项目仓库，沉淀可复用的工作流目录结构、配置体系、节点模板、运行脚本与开发规范
+- **技术栈**: Python 3.12 / LangGraph（图编排） / FastAPI + Uvicorn（HTTP 服务） / Pydantic（状态模型） / coze_coding_utils & coze_coding_dev_sdk（Coze SDK） / cozeloop（追踪）
+- **当前状态**: 根目录负责定义仓库级约束与协作规则；`examples/` 提供一套 3 节点线性工作流模板（input → process → output）；`projects/` 下已有 "漫剧大师极速版"（Seedance 视频脚本大师，13 节点，含 LLM 编排与 AI 生图）
 
 ## 目录说明
 | 路径 | 用途 |
 |---|---|
 | `examples/` | 工作流模板示例、配置样例、脚本与代码骨架 |
 | `projects/` | 已开发完成或持续迭代的具体项目目录，支持多个项目并存 |
-| `.codex/` | 本地 Codex 命令与配置，不作为业务实现目录 |
-| `AGENTS.md` | 仓库级说明与协作约束（本文件） |
+| `PRPs/` | 项目提案 / 规划文档存放目录（当前为空） |
+| `.claude/` | Claude Code 本地命令与配置 |
+| `AGENTS.md` | 仓库级说明与协作约束 |
+| `CLAUDE.md` | Claude Code 专用配置（与 AGENTS.md / GEMINI.md 三端同步） |
+| `GEMINI.md` | Gemini 专用配置（本文件，与 AGENTS.md / CLAUDE.md 三端同步） |
 
 ## 仓库定位
 - 本仓库优先沉淀“模板能力”，而不是只实现单一业务流
