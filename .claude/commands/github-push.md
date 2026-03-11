@@ -1,84 +1,162 @@
 ---
-name: GitHub同步推送
-description: 快速将本地项目同步推送到GitHub仓库。执行标准的 add -> commit -> push 流程，移除冗余的检查步骤。
+name: GitHub全量同步推送
+description: 一键推送所有子仓库 + 父仓库。顺序：先逐个子仓库同步推送，再父仓库 add → commit → push。
 allowed-tools: Bash
 argument-hint: "可选: 提交信息"
-version: 8.1.0
-last_updated: 2026-01-08
+version: 9.0.0
+last_updated: 2026-03-10
 ---
-# GitHub同步推送
+# GitHub全量同步推送
 
 ## 📋 指令概述
 
-**GitHub同步推送**是一个高效的Git操作工具，专注于快速完成代码同步。它移除了繁琐的文档引用检查，直接执行核心的 Git 同步流程。
+**全量同步推送**按照「先子后父」的顺序，将所有已配置 `.sub-repo` 的子项目同步到各自的独立 GitHub 仓库，最后再将父仓库整体提交推送。
+
+### 执行顺序与原因
+
+1. **先推子仓库** — 子仓库代码来源于 `projects/<项目名>/`，先确保各子仓库远端已同步最新
+2. **再推父仓库** — 父仓库包含子仓库的源目录和 `.sub-repo` 映射，作为整体归档兜底
 
 ### 核心特性
 
-- **极速同步**: 仅执行核心 Git 操作，无额外扫描
-- **自动提交**: 自动生成带时间戳的提交信息（如未提供）
-- **智能推送**: 自动识别当前分支并推送
-- **零阻塞**: 消除因全库扫描导致的卡顿
+- **全量覆盖**: 自动扫描所有含 `.sub-repo` 的子项目，逐个同步
+- **先子后父**: 子仓库全部成功后才推送父仓库
+- **失败隔离**: 单个子仓库失败不阻塞其余，但会汇总报告
+- **自动提交**: 未提供参数时自动生成带时间戳的提交信息
 
 ## 🚀 执行流程
 
-### 0. 预检查远程
-
-在执行提交和推送前，先确认 `origin` 已配置，避免“本地已提交但推送阶段才失败”。
+### Phase 0. 预检查父仓库远程
 
 ```bash
 if ! git remote get-url origin >/dev/null 2>&1; then
-  echo "错误: 未配置 Git 远程 origin。"
+  echo "错误: 父仓库未配置 Git 远程 origin。"
   echo "请先执行: git remote add origin <repo-url>"
   exit 1
 fi
 ```
 
-### 1. 添加变更
+### Phase 1. 子仓库同步推送
 
-将所有本地修改（新增、修改、删除）添加到暂存区。
+扫描 `projects/` 下所有含 `.sub-repo` 的子项目，逐个执行 rsync → commit → push。
 
 ```bash
-git add .
+PARENT_REPO=$(pwd)
+FAILED_SUBS=""
+PUSHED_SUBS=""
+
+for SUB_REPO_CFG in projects/*/.sub-repo; do
+  [ -f "$SUB_REPO_CFG" ] || continue
+
+  PROJECT_DIR=$(dirname "$SUB_REPO_CFG")
+  PROJECT_NAME=$(basename "$PROJECT_DIR")
+  REPO_FULL=$(cat "$SUB_REPO_CFG" | tr -d '[:space:]')
+  REPO_URL="https://github.com/${REPO_FULL}.git"
+  SUB_REPO_DIR="${HOME}/.sub-repos/${PROJECT_NAME}"
+
+  echo ""
+  echo "========== 子仓库: ${PROJECT_NAME} =========="
+  echo "目标: ${REPO_URL}"
+
+  # 1) 准备本地子仓库目录
+  mkdir -p "${HOME}/.sub-repos"
+  if [ ! -d "${SUB_REPO_DIR}/.git" ]; then
+    echo "首次同步，克隆子仓库..."
+    if ! git clone "$REPO_URL" "$SUB_REPO_DIR"; then
+      echo "✗ 克隆失败: ${PROJECT_NAME}"
+      FAILED_SUBS="${FAILED_SUBS} ${PROJECT_NAME}"
+      continue
+    fi
+  else
+    cd "$SUB_REPO_DIR" && git pull --rebase origin main 2>/dev/null || true
+  fi
+
+  # 2) rsync 同步
+  rsync -av --delete \
+    --exclude='.git' \
+    --exclude='.sub-repo' \
+    --exclude='.DS_Store' \
+    --exclude='__pycache__' \
+    --exclude='.env' \
+    "${PARENT_REPO}/${PROJECT_DIR}/" "${SUB_REPO_DIR}/"
+
+  # 3) 提交 + 推送
+  cd "$SUB_REPO_DIR"
+  git add .
+
+  if git diff --cached --quiet; then
+    echo "✓ 无变更，跳过: ${PROJECT_NAME}"
+    PUSHED_SUBS="${PUSHED_SUBS} ${PROJECT_NAME}(无变更)"
+    continue
+  fi
+
+  if [ -n "{{args}}" ]; then
+    SUB_MSG="{{args}}"
+  else
+    SUB_MSG="sync: ${PROJECT_NAME} - $(date '+%Y-%m-%d %H:%M')"
+  fi
+
+  git commit -m "$SUB_MSG"
+  CURRENT_BRANCH=$(git branch --show-current)
+
+  if git push origin "$CURRENT_BRANCH"; then
+    echo "✓ 推送成功: ${PROJECT_NAME}"
+    PUSHED_SUBS="${PUSHED_SUBS} ${PROJECT_NAME}(已推送)"
+  else
+    echo "✗ 推送失败: ${PROJECT_NAME}"
+    FAILED_SUBS="${FAILED_SUBS} ${PROJECT_NAME}"
+  fi
+
+  cd "$PARENT_REPO"
+done
 ```
 
-### 2. 提交变更
-
-创建提交。如果用户未提供参数，则自动生成带时间戳的提交信息。
+### Phase 1.5 子仓库结果汇总
 
 ```bash
-# 如果用户提供了参数 {{args}}，则使用参数作为提交信息
-# 否则使用默认格式: "项目同步更新 - YYYY-MM-DD HH:MM"
+echo ""
+echo "========== 子仓库汇总 =========="
+if [ -n "$PUSHED_SUBS" ]; then
+  echo "成功:${PUSHED_SUBS}"
+fi
+if [ -n "$FAILED_SUBS" ]; then
+  echo "失败:${FAILED_SUBS}"
+  echo "⚠ 存在子仓库推送失败，父仓库仍将继续推送。"
+fi
+```
 
-if [ -n "{{args}}" ]; then
-    MSG="{{args}}"
+### Phase 2. 父仓库提交推送
+
+```bash
+cd "$PARENT_REPO"
+echo ""
+echo "========== 父仓库推送 =========="
+
+git add .
+
+if git diff --cached --quiet; then
+  echo "父仓库无变更，跳过提交。"
 else
+  if [ -n "{{args}}" ]; then
+    MSG="{{args}}"
+  else
     MSG="项目同步更新 - $(date '+%Y-%m-%d %H:%M')"
+  fi
+
+  git commit -m "$MSG"
 fi
 
-git commit -m "$MSG"
-```
-
-### 3. 推送到远程
-
-自动检测当前分支并执行推送。
-
-```bash
-# 获取当前分支名
 CURRENT_BRANCH=$(git branch --show-current)
-
-# 推送到远程同名分支
 git push origin $CURRENT_BRANCH
 ```
 
-### 4. 推送后快速校验（防“UI挂起”误判）
-
-用最小成本确认“本地与远端是否已对齐”，避免把编辑器缓存误判为未推送。
+### Phase 3. 推送后校验
 
 ```bash
-# 1) 工作区是否干净
+cd "$PARENT_REPO"
+echo ""
+echo "========== 校验 =========="
 git status -sb
-
-# 2) 本地/远端提交是否一致（同分支）
 CURRENT_BRANCH=$(git branch --show-current)
 echo "local  $(git rev-parse $CURRENT_BRANCH)"
 echo "remote $(git rev-parse origin/$CURRENT_BRANCH)"
@@ -91,12 +169,13 @@ echo "remote $(git rev-parse origin/$CURRENT_BRANCH)"
 
 ## 🔍 常见问题
 
-- **无变更**: 如果没有文件修改，`git commit` 会提示 nothing to commit，这是正常现象。
-- **未配置远程**: 若提示 `origin does not appear to be a git repository`，先执行 `git remote add origin <repo-url>`。
+- **无子仓库**: 若 `projects/` 下没有任何 `.sub-repo` 文件，Phase 1 自动跳过，仅推送父仓库。
+- **子仓库推送失败**: 失败会记录并汇总，但不阻塞父仓库推送。修复后重新执行即可。
+- **首次使用子仓库**: 需先在 `projects/<项目名>/` 下创建 `.sub-repo` 文件，内容为 GitHub 仓库全名（如 `ZEN-VOID/manga-master-express`）。
 - **推送被拒**: 如果远程有新提交，请先执行 `git pull`。
-- **编辑器仍显示“挂起/变更计数”**: 先按第 4 步校验 Git 真实状态；若已对齐，刷新编辑器 Git 视图即可。
 
 ## ⚠️ 最佳实践
 
-- **敏感数据**: 推送前请确保 `.env` 等敏感文件已被 `.gitignore` 忽略。
+- **敏感数据**: `.env` 已在 rsync 排除列表中，不会同步到子仓库。推送前请确保 `.gitignore` 覆盖所有敏感文件。
 - **大文件**: 避免提交超过 100MB 的大文件（除非配置了 Git LFS）。
+- **新增子项目**: 只需在项目目录下创建 `.sub-repo` 文件，下次执行本命令即自动纳入推送。
